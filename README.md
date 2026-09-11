@@ -31,6 +31,92 @@ The five things it looks at:
 | **MCP servers** | Whose code is inside the trust boundary, and what can it reach? |
 | **Agent prompts** | Do the instructions remove oversight, or hide things from a reviewer? |
 
+## How it works
+
+```mermaid
+flowchart TB
+    subgraph IN ["what you point it at"]
+        A1["local path<br/><i>read from disk</i>"]
+        A2["github.com/owner/repo<br/><i>tree API + raw CDN</i>"]
+    end
+
+    subgraph CORE ["core/ &mdash; the scanner, zero runtime dependencies"]
+        direction TB
+        B1["<b>discovery</b><br/>walk tree, honour .wardlineignore"]
+        B2["<b>harness registry</b><br/>14 agents &rarr; file kind + owner<br/><i>the only per-agent knowledge</i>"]
+        B3["<b>rule engine</b><br/>74 rules over 5 families<br/>secrets · permissions · hooks · mcp · prompts"]
+        B4["<b>suppressions</b><br/>wardline-ignore, always counted"]
+        B5["<b>scoring</b><br/>trust weight &rarr; severity ceiling &rarr; evidence check"]
+        B1 --> B2 --> B3 --> B4 --> B5
+    end
+
+    subgraph OUT ["reports"]
+        C1["terminal"]
+        C2["json"]
+        C3["markdown"]
+        C4["html"]
+        C5["sarif &rarr; code scanning"]
+    end
+
+    subgraph PLAT ["server/ + web/ &mdash; the corpus platform"]
+        direction TB
+        D1["<b>ingest</b><br/>~1 API call per repo"]
+        D2[("<b>SQLite</b> via node:sqlite<br/><i>never stores credentials</i>")]
+        D3["<b>benchmark</b><br/>percentile vs corpus"]
+        D4["<b>Fastify API</b><br/>token + origin + host checks"]
+        D5["<b>React dashboard</b>"]
+        D1 --> D2 --> D3 --> D4 --> D5
+    end
+
+    A1 --> B1
+    A2 --> B1
+    A2 -.-> D1
+    D1 -.->|"same rules, files held in memory"| B1
+    B5 --> C1
+    B5 --> C2
+    B5 --> C3
+    B5 --> C4
+    B5 --> C5
+    B5 --> D2
+```
+
+**The idea worth holding onto:** a repository fetched from GitHub is never cloned
+and never written to disk. Its files become the same in-memory objects a local
+scan produces, so both paths run *identical* rules. There is no second, weaker
+analyser for remote code.
+
+### How a grade is decided
+
+```mermaid
+flowchart LR
+    F["findings"] --> T{"where did<br/>it come from?"}
+    T -->|"runtime / project-local"| W1["full weight"]
+    T -->|"plugin"| W2["0.5&times;, one shared cap<br/><i>not your code to fix</i>"]
+    T -->|"template / docs"| W3["0.25&times;, capped per file"]
+
+    W1 --> AVG["weighted average<br/>across 5 categories"]
+    W2 --> AVG
+    W3 --> AVG
+
+    AVG --> CEIL{"worst <b>live</b><br/>finding?"}
+    CEIL -->|critical| X1["capped at F"]
+    CEIL -->|high| X2["capped at C"]
+    CEIL -->|medium| X3["capped at B"]
+    CEIL -->|"low / none"| X4["uncapped"]
+
+    X1 --> EV{"enough config<br/>to judge?"}
+    X2 --> EV
+    X3 --> EV
+    X4 --> EV
+
+    EV -->|"under 1200 bytes<br/>and zero findings"| U["<b>unrated</b><br/>no grade claimed<br/>excluded from corpus"]
+    EV -->|yes| G["<b>grade A&ndash;F</b>"]
+```
+
+A weighted average alone let an unscoped `Bash(*)` score **91, an A**, because
+four clean categories buried one catastrophic finding. The ceiling exists so the
+grade answers the only question that matters: *is this safe to hand a shell.*
+
 ## Quick start
 
 ```bash

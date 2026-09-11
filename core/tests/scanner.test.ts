@@ -156,8 +156,8 @@ describe('reporters', () => {
 
 describe('plugin and truncation awareness', () => {
   it('treats installed plugin content as plugin, not runtime', () => {
-    expect(trustOf('plugins/cache/ecc/ecc/2.2.1/agents/worker.md', 'agent-prompt')).toBe('plugin');
-    expect(trustOf('plugins/marketplaces/ecc/.mcp.json', 'mcp')).toBe('plugin');
+    expect(trustOf('plugins/cache/vendor/toolpack/1.4.0/agents/worker.md', 'agent-prompt')).toBe('plugin');
+    expect(trustOf('plugins/marketplaces/vendor/.mcp.json', 'mcp')).toBe('plugin');
     expect(trustOf('.claude/settings.json', 'settings')).toBe('runtime');
   });
 

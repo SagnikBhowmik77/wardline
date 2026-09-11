@@ -88,29 +88,30 @@ analyser for remote code.
 ### How a grade is decided
 
 ```mermaid
-flowchart LR
-    F["findings"] --> T{"where did<br/>it come from?"}
-    T -->|"runtime / project-local"| W1["full weight"]
-    T -->|"plugin"| W2["0.5&times;, one shared cap<br/><i>not your code to fix</i>"]
-    T -->|"template / docs"| W3["0.25&times;, capped per file"]
+flowchart TB
+    A["every finding"] --> B["weight it by where it came from"]
 
-    W1 --> AVG["weighted average<br/>across 5 categories"]
-    W2 --> AVG
-    W3 --> AVG
+    B --> B1["runtime · full weight"]
+    B --> B2["plugin · half weight, one shared cap<br/>not your code to fix"]
+    B --> B3["template or docs · quarter weight, capped per file"]
 
-    AVG --> CEIL{"worst <b>live</b><br/>finding?"}
-    CEIL -->|critical| X1["capped at F"]
-    CEIL -->|high| X2["capped at C"]
-    CEIL -->|medium| X3["capped at B"]
-    CEIL -->|"low / none"| X4["uncapped"]
+    B1 --> C["weighted average across the five categories"]
+    B2 --> C
+    B3 --> C
 
-    X1 --> EV{"enough config<br/>to judge?"}
-    X2 --> EV
-    X3 --> EV
-    X4 --> EV
+    C --> D["then apply the ceiling:<br/>the worst live finding wins"]
+    D --> D1["a critical caps the grade at F"]
+    D --> D2["a high caps it at C"]
+    D --> D3["a medium caps it at B"]
+    D --> D4["low or none · uncapped"]
 
-    EV -->|"under 1200 bytes<br/>and zero findings"| U["<b>unrated</b><br/>no grade claimed<br/>excluded from corpus"]
-    EV -->|yes| G["<b>grade A&ndash;F</b>"]
+    D1 --> E["was there enough config to judge?"]
+    D2 --> E
+    D3 --> E
+    D4 --> E
+
+    E --> E1["under 1200 bytes with no findings<br/>unrated · no grade claimed · kept out of the corpus"]
+    E --> E2["otherwise · grade A to F"]
 ```
 
 A weighted average alone let an unscoped `Bash(*)` score **91, an A**, because

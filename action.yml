@@ -1,0 +1,111 @@
+name: Wardline
+description: Audit AI coding-agent configuration for permission, hook, MCP and prompt risks.
+author: Sagnik Bhowmik
+
+branding:
+  icon: shield
+  color: gray-dark
+
+inputs:
+  path:
+    description: Directory to scan.
+    required: false
+    default: .
+  min-severity:
+    description: "Report findings at this level or above: critical, high, medium, low, info."
+    required: false
+    default: medium
+  format:
+    description: "terminal, json, markdown, html or sarif."
+    required: false
+    default: sarif
+  output:
+    description: Where to write the report.
+    required: false
+    default: wardline.sarif
+  baseline:
+    description: Baseline file to compare against. Leave empty to skip.
+    required: false
+    default: ''
+  gate:
+    description: Fail the job on any regression from the baseline.
+    required: false
+    default: 'true'
+  fail-on-critical:
+    description: Fail the job when a critical finding is present.
+    required: false
+    default: 'true'
+
+outputs:
+  grade:
+    description: Letter grade, or -- when there was too little configuration to rate.
+    value: ${{ steps.scan.outputs.grade }}
+  score:
+    description: Score out of 100.
+    value: ${{ steps.scan.outputs.score }}
+  findings:
+    description: Total findings reported.
+    value: ${{ steps.scan.outputs.findings }}
+  critical:
+    description: Count of critical findings.
+    value: ${{ steps.scan.outputs.critical }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    # The scanner is built from this action's own source rather than pulled from
+    # a registry, so the action works on a fork or before any release exists.
+    - name: Build Wardline
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        npm ci --ignore-scripts --workspaces --include-workspace-root || npm install --ignore-scripts
+        npm run build -w wardline
+
+    - name: Run Wardline
+      id: scan
+      shell: bash
+      run: |
+        set -o pipefail
+        CLI="${{ github.action_path }}/core/dist/cli.js"
+
+        args=(scan --path "${{ inputs.path }}" --no-color)
+        args+=(--min-severity "${{ inputs.min-severity }}")
+        if [ -n "${{ inputs.baseline }}" ]; then
+          args+=(--baseline "${{ inputs.baseline }}")
+          if [ "${{ inputs.gate }}" = "true" ]; then args+=(--gate); fi
+        fi
+
+        # A machine-readable pass first, so the outputs are exact even when the
+        # scan exits non-zero on a critical finding.
+        node "$CLI" "${args[@]}" --format json --output wardline-report.json || true
+
+        node -e '
+          const r = require("./wardline-report.json");
+          const unrated = r.summary.evidence === "thin" && r.summary.total === 0;
+          const lines = [
+            "grade=" + (unrated ? "--" : r.scorecard.grade),
+            "score=" + r.scorecard.score,
+            "findings=" + r.summary.total,
+            "critical=" + r.summary.critical,
+          ];
+          require("fs").appendFileSync(process.env.GITHUB_OUTPUT, lines.join("\n") + "\n");
+        '
+
+        node "$CLI" "${args[@]}" --format "${{ inputs.format }}" --output "${{ inputs.output }}"
+        node "$CLI" "${args[@]}" --format markdown >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Fail on critical findings
+      if: inputs.fail-on-critical == 'true'
+      shell: bash
+      run: |
+        critical="${{ steps.scan.outputs.critical }}"
+        if [ "${critical:-0}" -gt 0 ]; then
+          echo "::error::Wardline found $critical critical finding(s)."
+          exit 1
+        fi

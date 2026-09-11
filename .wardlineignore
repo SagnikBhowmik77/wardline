@@ -1,0 +1,7 @@
+# Paths Wardline should not read when scanning this repository.
+#
+# The fixture is deliberately vulnerable. Counting it would mean this project
+# grades itself F on the strength of its own test data - which is exactly the
+# "nothing wrong versus nothing to look at" confusion the scanner exists to
+# avoid.
+core/examples/

@@ -1,0 +1,39 @@
+name: Agent config audit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  wardline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Audit agent configuration
+        id: wardline
+        uses: ./
+        with:
+          path: .
+          min-severity: medium
+          format: sarif
+          output: wardline.sarif
+          # Point this at a committed baseline to fail only on regressions.
+          baseline: ''
+
+      # Puts each finding on the line that caused it, inside the diff.
+      - name: Upload to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: wardline.sarif
+          category: wardline
+
+      - name: Report
+        if: always()
+        run: echo "Grade ${{ steps.wardline.outputs.grade }} (${{ steps.wardline.outputs.findings }} findings)"

@@ -1,0 +1,30 @@
+{
+  "name": "@wardline/server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Wardline corpus ingestion API: scans real agent configs and benchmarks yours against them",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "ingest": "tsx src/cli-ingest.ts",
+    "bench": "tsx src/cli-benchmark.ts",
+    "rescore": "tsx src/cli-rescore.ts",
+    "tuning": "tsx src/cli-tuning.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.2",
+    "fastify": "^5.2.1",
+    "wardline": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

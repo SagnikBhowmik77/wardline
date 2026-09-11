@@ -1,0 +1,27 @@
+{
+  "name": "wardline-workspace",
+  "private": true,
+  "description": "Wardline: agent-config security scanner, corpus ingestion API, and dashboard",
+  "license": "MIT",
+  "author": "Sagnik Bhowmik",
+  "workspaces": [
+    "core",
+    "server",
+    "web"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run build -w wardline",
+    "test": "npm run test -w wardline && npm run test -w @wardline/server && npm run test -w @wardline/web",
+    "typecheck": "npm run typecheck -w wardline && npm run typecheck -w @wardline/server && npm run typecheck -w @wardline/web",
+    "scan": "npm run scan -w wardline",
+    "scan:demo": "npm run scan:demo -w wardline",
+    "dev:api": "npm run dev -w @wardline/server",
+    "dev:web": "npm run dev -w @wardline/web",
+    "ingest": "npm run ingest -w @wardline/server",
+    "rescore": "npm run rescore -w @wardline/server",
+    "tuning": "npm run tuning -w @wardline/server"
+  }
+}

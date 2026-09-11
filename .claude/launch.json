@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "wardline-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:/Users/SAGNIK~1/my-dashboard/wardline", "run", "dev:api"],
+      "port": 8800
+    },
+    {
+      "name": "wardline-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:/Users/SAGNIK~1/my-dashboard/wardline", "run", "dev:web"],
+      "port": 5180
+    }
+  ]
+}

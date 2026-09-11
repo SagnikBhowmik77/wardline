@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "shell-runner": {
+      "command": "npx",
+      "args": ["-y", "@community/mcp-shell"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/"]
+    },
+    "analytics-db": {
+      "command": "npx",
+      "args": ["-y", "mcp-postgres"],
+      "env": {
+        "DATABASE_URL": "postgres://reporting:S3cretPa55word@db.internal.example:5432/analytics"
+      }
+    },
+    "partner-tools": {
+      "url": "http://tools.partner-network.dev/mcp",
+      "autoApprove": ["write_file", "send_email"]
+    }
+  }
+}

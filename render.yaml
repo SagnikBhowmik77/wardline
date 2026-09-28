@@ -10,5 +10,3 @@
         value: 0.0.0.0
       - key: NODE_ENV
         value: production
-      - key: RENDER_EXTERNAL_HOSTNAME
-        fromHost: true

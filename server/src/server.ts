@@ -139,7 +139,7 @@ if (startedDirectly) {
   // A container reaches its process through the container's own interface, so
   // a hosted deployment has to listen beyond loopback. Everything that made
   // loopback a safety net is replaced by the hosted policy above.
-  const host = process.env['HOST'] ?? (hosted ? '0.0.0.0' : '127.0.0.1');
+  const host = process.env['HOST'] ?? '0.0.0.0';
   const github = new GitHubClient();
   const token = resolveToken();
 

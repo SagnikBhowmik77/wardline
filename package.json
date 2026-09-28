@@ -25,5 +25,8 @@
     "tuning": "npm run tuning -w @wardline/server",
     "build:all": "npm run build -w wardline && npm run build -w @wardline/server && npm run build -w @wardline/web",
     "start:hosted": "node server/dist/server.js"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "*"
   }
 }

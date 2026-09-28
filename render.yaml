@@ -3,7 +3,7 @@
     name: wardline
     runtime: node
     plan: free
-    buildCommand: npm install --include=dev && npm run build --workspaces --if-present
+    buildCommand: npm install --include=dev && npm install @rollup/rollup-linux-x64-gnu --no-save && npm run build --workspaces --if-present
     startCommand: cd server && npm start
     envVars:
       - key: HOST

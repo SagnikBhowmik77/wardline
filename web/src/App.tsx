@@ -72,6 +72,8 @@ export function App(): JSX.Element {
 
   const unrated = detail ? isUnrated(detail.scan) : false;
 
+  const readOnly = health?.hosted === true;
+
   const submit = (): void => {
     if (reading.kind === 'empty' || reading.kind === 'invalid') return;
     void run('scan', () => api.scanTarget(entry.trim()));
@@ -113,8 +115,13 @@ export function App(): JSX.Element {
               <p className="eyebrow">Audit a configuration</p>
               <div className="entry">
                 <input
-                  placeholder="github.com/owner/repo, or a local path"
+                  placeholder={
+                    readOnly
+                      ? 'read-only deployment'
+                      : 'github.com/owner/repo, or a local path'
+                  }
                   value={entry}
+                  disabled={readOnly}
                   spellCheck={false}
                   onChange={(e) => setEntry(e.target.value)}
                   onKeyDown={(e) => {
@@ -123,7 +130,12 @@ export function App(): JSX.Element {
                 />
                 <button
                   className="btn"
-                  disabled={busy !== null || reading.kind === 'empty' || reading.kind === 'invalid'}
+                  disabled={
+                    readOnly ||
+                    busy !== null ||
+                    reading.kind === 'empty' ||
+                    reading.kind === 'invalid'
+                  }
                   onClick={submit}
                 >
                   {busy === 'scan' ? 'Working' : 'Audit'}
@@ -138,8 +150,19 @@ export function App(): JSX.Element {
               )}
 
               <p className="note">
-                A GitHub address is fetched over the API and joins the benchmark corpus. Anything
-                else is read from this machine and stays private to it.
+                {readOnly ? (
+                  <>
+                    This is a public, read-only deployment: browse the corpus, the benchmark and
+                    every rule, but nothing here scans anything. Auditing reads files, so it runs
+                    on your machine, not on a server you do not control.{' '}
+                    <code>npx wardline scan</code>
+                  </>
+                ) : (
+                  <>
+                    A GitHub address is fetched over the API and joins the benchmark corpus.
+                    Anything else is read from this machine and stays private to it.
+                  </>
+                )}
               </p>
 
               {outcome && (

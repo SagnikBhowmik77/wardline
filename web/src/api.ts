@@ -89,6 +89,8 @@ export interface CorpusStats {
 
 export interface Health {
   ok: boolean;
+  /** A public deployment: corpus reads only, no scanning from here. */
+  hosted?: boolean;
   corpusSize: number;
   githubAuthenticated: boolean;
   rateRemaining: number | null;

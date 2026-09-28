@@ -323,6 +323,92 @@ export class Store {
     for (const row of doomed) remove.run(row.id);
   }
 
+  /**
+   * Restore one scan from the committed snapshot.
+   *
+   * Separate from recordScan because a seed carries no ScanReport and no
+   * evidence: it replays a result that was already stripped, and must not be
+   * able to write evidence back in.
+   */
+  importSeedScan(scan: {
+    slug: string;
+    stars: number;
+    created_at: string;
+    grade: string;
+    score: number;
+    secrets: number;
+    permissions: number;
+    hooks: number;
+    mcp: number;
+    agents: number;
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    info: number;
+    files_scanned: number;
+    config_bytes: number;
+    evidence: string;
+    harnesses: string;
+    findings: [string, string, string, string, string][];
+  }): number {
+    const repo = this.upsertRepo({
+      source: 'github',
+      slug: scan.slug,
+      stars: scan.stars,
+      inCorpus: true,
+    });
+
+    const result = this.db
+      .prepare(
+        `INSERT INTO scans (
+           repo_id, created_at, wardline_version, grade, score,
+           secrets, permissions, hooks, mcp, agents,
+           total, critical, high, medium, low, info,
+           files_scanned, config_bytes, evidence, harnesses, truncated
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+      )
+      .run(
+        repo.id,
+        scan.created_at,
+        'seed',
+        scan.grade,
+        scan.score,
+        scan.secrets,
+        scan.permissions,
+        scan.hooks,
+        scan.mcp,
+        scan.agents,
+        scan.total,
+        scan.critical,
+        scan.high,
+        scan.medium,
+        scan.low,
+        scan.info,
+        scan.files_scanned,
+        scan.config_bytes,
+        scan.evidence,
+        scan.harnesses,
+      );
+
+    const scanId = Number(result.lastInsertRowid);
+    const insert = this.db.prepare(
+      `INSERT INTO findings (scan_id, rule_id, category, severity, title, rel_path, line, trust, evidence)
+       VALUES (?, ?, ?, ?, ?, ?, NULL, 'runtime', NULL)`,
+    );
+
+    for (const [ruleId, category, severity, title, relPath] of scan.findings) {
+      insert.run(scanId, ruleId, category, severity, title, relPath);
+    }
+
+    this.db
+      .prepare('UPDATE repos SET last_scanned = ? WHERE id = ?')
+      .run(scan.created_at, repo.id);
+
+    return scanId;
+  }
+
   recentScans(limit = 50): ScanRow[] {
     return this.db
       .prepare(

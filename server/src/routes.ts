@@ -17,12 +17,19 @@ import { buildBenchmark, corpusStats } from './benchmark.js';
 import { tuneRules } from './tuning.js';
 import { discoverCandidates, ingestMany, ingestRepo } from './ingest.js';
 import { parseTarget } from './target.js';
+import { LOCAL_SCAN_REFUSED } from './hosted.js';
 import type { GitHubClient } from './github.js';
 import type { Store } from './db.js';
 
 interface Deps {
   store: Store;
   github: GitHubClient;
+  /**
+   * Public-deployment policy. Passed in rather than read from the environment
+   * so the server's configuration is the single source of truth: a test that
+   * builds a hosted server must get hosted behaviour.
+   */
+  hosted: boolean;
 }
 
 const SLUG = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
@@ -40,10 +47,13 @@ function parseHarnesses(value: string): string[] {
 }
 
 export function registerRoutes(app: FastifyInstance, deps: Deps): void {
-  const { store, github } = deps;
+  const { store, github, hosted } = deps;
 
   app.get('/api/health', async () => ({
     ok: true,
+    // The dashboard needs to know it is read-only before a user presses a
+    // button that can only fail.
+    hosted,
     corpusSize: store.corpusSize(),
     githubAuthenticated: github.authenticated,
     rateRemaining: github.rate.remaining,
@@ -68,6 +78,12 @@ export function registerRoutes(app: FastifyInstance, deps: Deps): void {
 
       if (target.kind === 'invalid') {
         return reply.code(400).send({ error: target.reason });
+      }
+
+      // Refused by policy, not by authentication. A token holder on a public
+      // deployment still must not be able to read the host filesystem.
+      if (target.kind === 'path' && hosted) {
+        return reply.code(403).send({ error: LOCAL_SCAN_REFUSED, code: 'local-scan-disabled' });
       }
 
       if (target.kind === 'repo') {

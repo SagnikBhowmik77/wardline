@@ -22,6 +22,8 @@
     "dev:web": "npm run dev -w @wardline/web",
     "ingest": "npm run ingest -w @wardline/server",
     "rescore": "npm run rescore -w @wardline/server",
-    "tuning": "npm run tuning -w @wardline/server"
+    "tuning": "npm run tuning -w @wardline/server",
+    "build:all": "npm run build -w wardline && npm run build -w @wardline/server && npm run build -w @wardline/web",
+    "start:hosted": "node server/dist/server.js"
   }
 }

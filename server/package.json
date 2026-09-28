@@ -14,10 +14,12 @@
     "ingest": "tsx src/cli-ingest.ts",
     "bench": "tsx src/cli-benchmark.ts",
     "rescore": "tsx src/cli-rescore.ts",
-    "tuning": "tsx src/cli-tuning.ts"
+    "tuning": "tsx src/cli-tuning.ts",
+    "seed": "tsx src/cli-seed.ts"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.2",
+    "@fastify/static": "^10.1.5",
     "fastify": "^5.2.1",
     "wardline": "*"
   },
@@ -26,5 +28,9 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
-  }
+  },
+  "files": [
+    "dist",
+    "seed"
+  ]
 }

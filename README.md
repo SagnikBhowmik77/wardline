@@ -4,7 +4,7 @@
 
 Wardline reads the files that decide what your coding agent is allowed to do — permission lists, hooks, MCP server definitions, agent prompts — and tells you where that configuration is wider, louder, or leakier than you meant it to be.
 
-[![tests](https://img.shields.io/badge/tests-235%20passing-brightgreen)](#development)
+[![tests](https://img.shields.io/badge/tests-256%20passing-brightgreen)](#development)
 [![rules](https://img.shields.io/badge/rules-74-blue)](#the-rules)
 [![dependencies](https://img.shields.io/badge/runtime%20deps-0-blue)](#why-zero-dependencies)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -641,6 +641,44 @@ Patterns are a path prefix (`fixtures/`) or a suffix (`*.sample.json`). The file
 is read from the scan root only, so scanning a fixture directly still works -
 which is how the fixture's own tests run.
 
+## Deploying it
+
+One web service runs the API and serves the dashboard from the same origin.
+[`render.yaml`](render.yaml) is a Render Blueprint, so the whole thing is three
+clicks: **New > Blueprint > pick this repo**. The free plan is enough.
+
+Setting `WARDLINE_HOSTED=1` switches on a different policy, because a tool that
+reads whatever path it is given is correct on your laptop and indefensible on
+the public internet:
+
+| | local | hosted |
+| --- | --- | --- |
+| scan a local path | yes, that is the point | **refused outright** &mdash; not merely unauthenticated |
+| read the corpus, rules, benchmark | token | public, so the demo can be opened |
+| ingest a repo, anything that writes | token | token |
+| binds to | loopback only | the container interface, with a same-origin check |
+
+The refusal is policy, not authentication: a token holder still cannot read the
+host filesystem, and there is a test asserting exactly that.
+
+### The corpus survives restarts
+
+Free hosting has no disk that outlives a restart, so a corpus built by ingesting
+fifty repositories would be gone by morning and the benchmark would have nothing
+to compare against. [`server/seed/corpus.json`](server/seed/corpus.json) is a
+committed snapshot &mdash; 50 repositories, 3,520 findings, no evidence &mdash;
+loaded on boot **only when the corpus is empty**, so a deployment that has
+ingested more is never silently rewound.
+
+Recapture it after ingesting:
+
+```bash
+npm run seed -w @wardline/server
+```
+
+`GITHUB_TOKEN` stays optional. Without it ingestion runs at 60 requests an hour;
+the deploy never depends on a secret nobody supplied.
+
 ## Library use
 
 ```ts
@@ -663,7 +701,7 @@ A tool that audits supply-chain exposure should not add any. Wardline uses Node 
 
 ```bash
 npm install
-npm test              # 235 tests (165 core + 53 server + 17 web)
+npm test              # 256 tests (165 core + 74 server + 17 web)
 npm run typecheck
 npm run build
 npm run scan:demo     # scan examples/insecure-config

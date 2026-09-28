@@ -148,11 +148,7 @@ if (startedDirectly) {
   // Free hosting has no disk that survives a restart. Without this the corpus
   // would be empty on every boot and the benchmark would compare against
   // nothing at all.
-  // Resolved from this module, like the dashboard root: the start command runs
-  // from the repository root, so a relative default would miss.
-  const seedPath =
-    process.env['SEED_PATH'] ?? fileURLToPath(new URL('../seed/corpus.json', import.meta.url));
-  const seeded = seedIfEmpty(store, seedPath);
+  const seeded = seedIfEmpty(store, process.env['SEED_PATH']);
 
   const app = buildServer({ logger: true, store, github, token });
 
@@ -165,7 +161,13 @@ if (startedDirectly) {
             ? ' (github: authenticated, 5000 req/hr)'
             : ' (github: anonymous, 60 req/hr - set GITHUB_TOKEN to raise it)'),
       );
-      if (seeded > 0) app.log.info('seeded the corpus with ' + seeded + ' repositories');
+      if (seeded.loaded > 0) {
+        app.log.info('seeded the corpus with ' + seeded.loaded + ' repositories from ' + seeded.from);
+      } else if (seeded.tried.length > 0) {
+        // Silence here is how a deployment ends up showing an empty corpus with
+        // no clue why, so say plainly where it looked.
+        app.log.warn('no corpus snapshot found; looked in: ' + seeded.tried.join(', '));
+      }
       app.log.info(
         hosted
           ? 'hosted mode: local path scanning is disabled, corpus reads are public'

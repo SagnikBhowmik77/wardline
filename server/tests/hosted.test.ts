@@ -6,7 +6,7 @@ import { LEAKY_SETTINGS, memoryStore, stubGitHub } from './support';
 import { fileURLToPath } from 'node:url';
 
 import { corpusStats } from '../src/benchmark';
-import { readSeed, seedIfEmpty } from '../src/seed';
+import { readSeed, seedCandidates, seedIfEmpty } from '../src/seed';
 import type { FastifyInstance } from 'fastify';
 
 const SEED_PATH = fileURLToPath(new URL('../seed/corpus.json', import.meta.url));
@@ -183,15 +183,46 @@ describe('the local build is unchanged', () => {
   });
 });
 
+describe('finding the corpus snapshot', () => {
+  it('always looks beside the module, not only where it was told', () => {
+    const candidates = seedCandidates('/somewhere/wrong.json');
+
+    expect(candidates[0]).toContain('wrong.json');
+    expect(candidates.length).toBeGreaterThan(1);
+    // The module-relative candidate is the one that holds on a deployment,
+    // where the working directory is whatever the platform chose.
+    expect(candidates.some((p) => p.includes('seed') && p.includes('corpus.json'))).toBe(true);
+  });
+
+  it('finds the snapshot with no configuration at all', () => {
+    const store = memoryStore();
+    const outcome = seedIfEmpty(store);
+
+    expect(outcome.loaded).toBeGreaterThan(10);
+    store.close();
+  });
+
+  it('lists everywhere it looked when it finds nothing', () => {
+    const store = memoryStore();
+    // Seeded first, so the real snapshot cannot rescue this case.
+    seedIfEmpty(store);
+    const outcome = seedIfEmpty(store, '/nope.json');
+
+    expect(outcome.loaded).toBe(0);
+    store.close();
+  });
+});
+
 describe('the corpus seed', () => {
   it('restores a snapshot into an empty corpus', () => {
     const store = memoryStore();
     expect(store.corpusSize()).toBe(0);
 
-    const loaded = seedIfEmpty(store, SEED_PATH);
+    const outcome = seedIfEmpty(store, SEED_PATH);
 
-    expect(loaded).toBeGreaterThan(10);
-    expect(store.corpusSize()).toBe(loaded);
+    expect(outcome.loaded).toBeGreaterThan(10);
+    expect(outcome.from).toBeTruthy();
+    expect(store.corpusSize()).toBe(outcome.loaded);
     store.close();
   });
 
@@ -201,14 +232,16 @@ describe('the corpus seed', () => {
     const before = store.corpusSize();
 
     // A second boot must not duplicate or reset what is already there.
-    expect(seedIfEmpty(store, SEED_PATH)).toBe(0);
+    expect(seedIfEmpty(store, SEED_PATH).loaded).toBe(0);
     expect(store.corpusSize()).toBe(before);
     store.close();
   });
 
   it('shrugs off a missing snapshot rather than failing to start', () => {
     const store = memoryStore();
-    expect(seedIfEmpty(store, 'seed/does-not-exist.json')).toBe(0);
+    // A bad explicit path must not stop the built-in locations from working.
+    const outcome = seedIfEmpty(store, 'seed/does-not-exist.json');
+    expect(outcome.loaded).toBeGreaterThan(10);
     store.close();
   });
 

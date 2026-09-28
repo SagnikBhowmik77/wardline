@@ -12,7 +12,8 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import type { Store } from './db.js';
 
@@ -104,19 +105,49 @@ export function readSeed(path: string): Seed | null {
   return null;
 }
 
+export interface SeedOutcome {
+  loaded: number;
+  /** Which candidate actually held the snapshot, for the startup log. */
+  from: string | null;
+  /** Everywhere that was tried, when none of them worked. */
+  tried: string[];
+}
+
+/**
+ * Where the snapshot might be.
+ *
+ * An explicit SEED_PATH wins, but it is not trusted to be right: a relative
+ * one resolves against the working directory, and a deployment's working
+ * directory is whatever the platform decided. So a module-relative path is
+ * always tried too, and it is the one that actually holds on a host.
+ */
+export function seedCandidates(explicit?: string): string[] {
+  const here = fileURLToPath(new URL('.', import.meta.url));
+
+  return [
+    ...(explicit ? [resolve(explicit)] : []),
+    // From server/dist/ or server/src/, the snapshot is one level up.
+    resolve(here, '..', 'seed', 'corpus.json'),
+    resolve(process.cwd(), 'server', 'seed', 'corpus.json'),
+    resolve(process.cwd(), 'seed', 'corpus.json'),
+  ].filter((path, i, all) => all.indexOf(path) === i);
+}
+
 /**
  * Load the snapshot, but only into an empty corpus. A running deployment that
  * has ingested new repositories must never be silently rewound.
  */
-export function seedIfEmpty(store: Store, path: string): number {
-  if (store.corpusSize() > 0) return 0;
+export function seedIfEmpty(store: Store, explicit?: string): SeedOutcome {
+  const tried = seedCandidates(explicit);
+  if (store.corpusSize() > 0) return { loaded: 0, from: null, tried: [] };
 
-  const seed = readSeed(path);
-  if (!seed) return 0;
+  for (const path of tried) {
+    const seed = readSeed(path);
+    if (!seed) continue;
 
-  for (const scan of seed.scans) {
-    store.importSeedScan(scan);
+    for (const scan of seed.scans) store.importSeedScan(scan);
+    return { loaded: seed.scans.length, from: path, tried };
   }
 
-  return seed.scans.length;
+  return { loaded: 0, from: null, tried };
 }

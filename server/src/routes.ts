@@ -7,7 +7,7 @@
  * keeps only aggregate-safe data.
  */
 
-import { readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { ALL_RULES, scan as scanLocal } from 'wardline';
@@ -17,6 +17,7 @@ import { buildBenchmark, corpusStats } from './benchmark.js';
 import { tuneRules } from './tuning.js';
 import { discoverCandidates, ingestMany, ingestRepo } from './ingest.js';
 import { parseTarget } from './target.js';
+import { seedCandidates } from './seed.js';
 import { LOCAL_SCAN_REFUSED } from './hosted.js';
 import type { GitHubClient } from './github.js';
 import type { Store } from './db.js';
@@ -51,6 +52,9 @@ export function registerRoutes(app: FastifyInstance, deps: Deps): void {
 
   app.get('/api/health', async () => ({
     ok: true,
+    // A deployment reporting an empty corpus should say whether the snapshot
+    // was missing or simply not loaded yet, rather than leaving it a mystery.
+    seedAvailable: seedCandidates().some((p) => existsSync(p)),
     // The dashboard needs to know it is read-only before a user presses a
     // button that can only fail.
     hosted,

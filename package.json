@@ -10,7 +10,7 @@
     "web"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13"
   },
   "scripts": {
     "build": "npm run build -w wardline",

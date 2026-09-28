@@ -32,5 +32,8 @@
   "files": [
     "dist",
     "seed"
-  ]
+  ],
+  "engines": {
+    "node": ">=22.13"
+  }
 }

@@ -148,7 +148,11 @@ if (startedDirectly) {
   // Free hosting has no disk that survives a restart. Without this the corpus
   // would be empty on every boot and the benchmark would compare against
   // nothing at all.
-  const seeded = seedIfEmpty(store, process.env['SEED_PATH'] ?? 'seed/corpus.json');
+  // Resolved from this module, like the dashboard root: the start command runs
+  // from the repository root, so a relative default would miss.
+  const seedPath =
+    process.env['SEED_PATH'] ?? fileURLToPath(new URL('../seed/corpus.json', import.meta.url));
+  const seeded = seedIfEmpty(store, seedPath);
 
   const app = buildServer({ logger: true, store, github, token });
 

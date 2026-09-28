@@ -11,3 +11,6 @@ web/dist/
 # Runtime state from Salvo, which has been run against this repo as a
 # target. Another tool state, not part of Wardline.
 .salvo/
+
+# The workspace root lockfile governs every package.
+core/package-lock.json

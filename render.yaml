@@ -1,12 +1,50 @@
-﻿services:
+# Render Blueprint.
+#
+# One web service runs the API and serves the built dashboard from the same
+# origin, so there is no cross-origin surface and no second deployment to keep
+# in step.
+#
+# WARDLINE_HOSTED switches on the public policy: scanning a local path is
+# refused outright, reading the corpus needs no token, and anything that writes
+# or spends the GitHub rate limit still does.
+services:
   - type: web
     name: wardline
     runtime: node
     plan: free
-    buildCommand: npm install --include=dev && npm install @rollup/rollup-linux-x64-gnu --no-save && npm run build --workspaces --if-present
-    startCommand: cd server && npm start
+    region: oregon
+    branch: main
+
+    # --include=dev is not optional. Render sets NODE_ENV=production, which
+    # makes npm skip devDependencies, and every build tool here - typescript,
+    # vite, tsx - is a devDependency. Without this the build dies on
+    # "tsc: not found".
+    buildCommand: npm ci --include=dev && npm run build:all
+
+    startCommand: node server/dist/server.js
+    healthCheckPath: /api/health
+
     envVars:
-      - key: HOST
-        value: 0.0.0.0
-      - key: NODE_ENV
-        value: production
+      - key: WARDLINE_HOSTED
+        value: '1'
+
+      # node:sqlite is behind --experimental-sqlite on Node 22 and unflagged
+      # from 24, and this project stores everything in it. Pinning 24 keeps
+      # the runtime honest without a flag.
+      - key: NODE_VERSION
+        value: '24'
+
+      # Generated once by Render and kept. Needed only to ingest repositories;
+      # everything a visitor can see is public without it.
+      - key: WARDLINE_TOKEN
+        generateValue: true
+
+      # The free plan has no persistent disk, so the database lives in the
+      # container and is rebuilt from the committed seed on every boot.
+      - key: DB_PATH
+        value: /tmp/wardline.db
+
+      # Optional: raises GitHub ingestion from 60 to 5000 requests an hour.
+      # Left unset so a deploy never depends on a secret nobody supplied.
+      - key: GITHUB_TOKEN
+        sync: false

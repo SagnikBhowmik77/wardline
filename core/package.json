@@ -2,7 +2,16 @@
   "name": "wardline",
   "version": "0.1.0",
   "description": "Security auditor for AI coding-agent configurations. Audits permissions, hooks, MCP servers, agent prompts and committed secrets.",
-  "keywords": ["security", "static-analysis", "ai-agents", "mcp", "prompt-injection", "secrets", "sast", "cli"],
+  "keywords": [
+    "security",
+    "static-analysis",
+    "ai-agents",
+    "mcp",
+    "prompt-injection",
+    "secrets",
+    "sast",
+    "cli"
+  ],
   "license": "MIT",
   "author": "Sagnik Bhowmik",
   "type": "module",
@@ -17,9 +26,13 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

@@ -7,3 +7,7 @@ wardline-report.*
 .data/
 web/dist/
 *.tsbuildinfo
+
+# Runtime state from Salvo, which has been run against this repo as a
+# target. Another tool state, not part of Wardline.
+.salvo/

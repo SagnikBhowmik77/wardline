@@ -3,7 +3,7 @@
     name: wardline
     runtime: node
     plan: free
-    buildCommand: npm install && (cd web && npm install && npm run build) && (cd server && npm install && npm run build)
+    buildCommand: npm install --include=dev && (cd web && npm install --include=dev && npm run build) && (cd server && npm install --include=dev && npm run build)
     startCommand: cd server && npm start
     envVars:
       - key: HOST
